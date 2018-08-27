@@ -144,6 +144,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
 			printf("No filepath provided\n");
+            close(socket_fd);
 			return;
 		}
 		filepath = argv[1];
@@ -175,7 +176,9 @@ void processCommand(int argc, char** argv, char* server_ip){
             print(response_file);
         }else{ // write response to file
             if(strcmp(response_status, "1") == 0){
-                writeFile(localfile, response_file, length, f);
+                char* error = writeFile(localfile, response_file, length, f);
+                if(error != NULL)
+                    printf("%s\n", error);
             }else{
                 print(response_file);
             }

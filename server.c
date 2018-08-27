@@ -126,8 +126,13 @@ void main(){
             char status_str[MESSAGE_BUFFER_SIZE];
             sprintf(status_str, "%i", status);
 
+            printf("%s %s\n", status_str, file);
+
             sendString(connection_socket_fd, status_str); // status/read success
-            sendArray(connection_socket_fd, file, length); // file content or error message 
+            if(status)
+                sendArray(connection_socket_fd, file, length); // file content 
+            else
+                sendString(connection_socket_fd, file); // send error message
             
         }else if(strcmp(command, "put") == 0){
             
@@ -151,7 +156,8 @@ void main(){
             sendString(connection_socket_fd, status);
 
         }else if(strcmp(command, "sys") == 0){
-            
+            // respond
+            sendString(connection_socket_fd, "I'm afraid I cannot do that");
         }else if(strcmp(command, "delay") == 0){ // delay integer
             // read delay duration
             char* delay_str = receiveString(connection_socket_fd);
