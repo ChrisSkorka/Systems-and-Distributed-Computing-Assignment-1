@@ -7,13 +7,15 @@
 #include <netdb.h>
 #include <wordexp.h>
 
+#include "socket.c"
+
 #define PORT 46564
 #define COMMAND_BUFFER_SIZE 512
 #define MESSAGE_BUFFER_SIZE 1024
 
 typedef enum { false, true } bool;
 
-void log(char* s){
+void lg(char* s){
     if(true)
         printf("Log: %s\n", s);
 }
@@ -54,56 +56,6 @@ int connectToServer(char* server_ip){
     }
 
     return fd;
-}
-
-// write string to socket (send)
-int sendToServer(int socket_fd, char* message){
-
-    // message length
-    int length = strlen(message) + 1;
-
-    // get string representation of length of message
-    char message_size_str[MESSAGE_BUFFER_SIZE];
-    sprintf(message_size_str, "%i", length);
-
-    // send size of actual message
-    int code = write(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return code;
-    }
-
-    // send actual message
-    code = write(socket_fd, message, length);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return code;
-    }
-    
-    return code;
-}
-
-// wait for response and read it into buffer
-char* recieveFromServer(int socket_fd, int* len){
-
-    // read response size
-    char message_size_str[MESSAGE_BUFFER_SIZE];
-    bzero(message_size_str, MESSAGE_BUFFER_SIZE);
-    int code = read(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE);
-    if (code < 0)
-        printf("Error reading from socket\n");
-
-    // create string to contain message
-    int length = atoi(message_size_str);
-    *len = length;
-    char* message = calloc(length + 1, sizeof(char));
-
-    // read actual response
-    code = read(socket_fd, message, length);
-    if (code < 0)
-        printf("Error reading from socket\n");
-
-    return message;
 }
 
 void print(char* message){
@@ -166,22 +118,21 @@ void processCommand(int argc, char** argv, char* server_ip){
 		if(l){
 			strcat(server_command_args, " -l");
 		}
-		if(pathname[0] != NULL){
+		if(pathname[0] != 0){
 			strcat(server_command_args, " ");
 			strcat(server_command_args, pathname);
 		}
 
-        int code = sendToServer(socket_fd, "list");
+        int code = sendString(socket_fd, "list");
         if(code >= 0)
-            code = sendToServer(socket_fd, server_command_args);
+            code = sendString(socket_fd, server_command_args);
         if(code < 0){
             printf("Error sending request\n");
             close(socket_fd);
             return;
         }
 
-        int length;
-        char* response = recieveFromServer(socket_fd, &length);
+        char* response = receiveString(socket_fd);
 
         if(localfile[0] == 0){ // if no local file specified (print to screen)
             print(response);
@@ -214,21 +165,21 @@ void processCommand(int argc, char** argv, char* server_ip){
 			i++;
 		}
 
-        int code = sendToServer(socket_fd, "get");
+        int code = sendString(socket_fd, "get");
         if(code >= 0)
-            code = sendToServer(socket_fd, filepath);
+            code = sendString(socket_fd, filepath);
         if(code < 0){
             printf("Error sending request\n");
             close(socket_fd);
             return;
         }
 
-        int length;
-        char* response = recieveFromServer(socket_fd, &length);
+        long length;
+        char* response = receiveArray(socket_fd, &length);
 
         if(localfile[0] == 0){ // if no local file specified (print to screen)
             // print(response);
-            printf("%.*s\n", length, response);
+            printf("%.*s\n", (int)length, response);
         }else{ // write response to file
             writeFile(localfile, response, length);
         }
@@ -266,9 +217,9 @@ void processCommand(int argc, char** argv, char* server_ip){
 		}
 		
         // send command and delay to server
-        int code = sendToServer(socket_fd, "delay");
+        int code = sendString(socket_fd, "delay");
         if(code >= 0)
-            code = sendToServer(socket_fd, argv[1]);
+            code = sendString(socket_fd, argv[1]);
         if(code < 0){
             printf("Error sending request\n");
             close(socket_fd);
@@ -276,8 +227,7 @@ void processCommand(int argc, char** argv, char* server_ip){
         }
 
         // get and display respons
-        int length;
-        char* response = recieveFromServer(socket_fd, &length);
+        char* response = receiveString(socket_fd);
         print(response);
         
 	}else{ // unknown command

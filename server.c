@@ -5,60 +5,10 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#include "socket.c"
+
 #define PORT 46564
 #define MESSAGE_BUFFER_SIZE 1024
-
-// wait for request/command and then read it
-char* recieveFromClient(int socket_fd){
-
-    // read response size
-    char message_size_str[MESSAGE_BUFFER_SIZE];
-    bzero(message_size_str, MESSAGE_BUFFER_SIZE);
-    int code = read(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE);
-    if (code < 0)
-        printf("Error reading from socket\n");
-
-    // create string to contain message
-    int size = atoi(message_size_str);
-    char* message = calloc(size + 1, sizeof(char));
-
-    // read actual response
-    code = read(socket_fd, message, size);
-    if (code < 0)
-        printf("Error reading from socket\n");
-
-    return message;
-}
-
-// send message to client
-void sendStringToClient(int socket_fd, char* message){
-    // message length
-    int length = strlen(message) + 1;
-    // send message
-    sendToClient(socket_fd, message, length);
-}
-
-// send message to client
-void sendToClient(int socket_fd, char* message, long length){
-
-    // get string representation of length of message
-    char message_size_str[MESSAGE_BUFFER_SIZE];
-    sprintf(message_size_str, "%i", length);
-
-    // send size of actual message
-    int code = write(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return;
-    }
-
-    // send actual message
-    code = write(socket_fd, message, length);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return;
-    }
-}
 
 void main(){
     // variables
@@ -105,7 +55,7 @@ void main(){
         printf("New connection\n");
         
         // base command
-        char* command = recieveFromClient(connection_socket_fd);
+        char* command = receiveString(connection_socket_fd);
 
         // print command and then execute it
         printf("> %s\n", command);
@@ -113,7 +63,7 @@ void main(){
         if(strcmp(command, "list") == 0){ // list args
 
             // get shell arguments
-            char* shell_args = recieveFromClient(connection_socket_fd);
+            char* shell_args = receiveString(connection_socket_fd);
             char shell_base_command[] = "ls";
             char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
             strcat(shell_command, shell_base_command);
@@ -152,12 +102,12 @@ void main(){
             }
             
             // respond
-            sendStringToClient(connection_socket_fd, response);
+            sendString(connection_socket_fd, response);
 
         }else if(strcmp(command, "get") == 0){ // get filepath
         
             // get filepath
-            char* filepath = recieveFromClient(connection_socket_fd);
+            char* filepath = receiveString(connection_socket_fd);
 
             char* buffer = 0;
             long length;
@@ -175,7 +125,7 @@ void main(){
                 fclose (f);
             }
 
-            sendToClient(connection_socket_fd, buffer, length);
+            sendArray(connection_socket_fd, buffer, length);
 
         }else if(strcmp(command, "put") == 0){
             
@@ -183,14 +133,14 @@ void main(){
             
         }else if(strcmp(command, "delay") == 0){ // delay integer
             // read delay duration
-            char* delay_str = recieveFromClient(connection_socket_fd);
+            char* delay_str = receiveString(connection_socket_fd);
             int delay = atoi(delay_str);
 
             // sleep for specified time
             sleep(delay);
 
             // respond
-            sendStringToClient(connection_socket_fd, delay_str);
+            sendString(connection_socket_fd, delay_str);
         }
 
         close(connection_socket_fd);
