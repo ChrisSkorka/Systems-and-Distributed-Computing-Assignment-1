@@ -8,6 +8,7 @@
 #include <wordexp.h>
 
 #include "socket.c"
+#include "file.c"
 
 #define PORT 46564
 #define COMMAND_BUFFER_SIZE 512
@@ -64,14 +65,6 @@ void print(char* message){
     // TODO print 40 lines at a time
 }
 
-void writeFile(char* filename, char* message, long length){
-    FILE *fp;
-    fp = fopen(filename, "w");
-    fwrite(message, sizeof(char), length, fp);
-
-    fclose(fp);
-}
-
 void processCommand(int argc, char** argv, char* server_ip){
 
     if(argc < 1){
@@ -89,8 +82,8 @@ void processCommand(int argc, char** argv, char* server_ip){
 		// default argument values
 		bool l = false;
 		bool f = false;
-		char* pathname = "";
-		char* localfile = "";
+		char* pathname = NULL;
+		char* localfile = NULL;
 
 		// get arguments from command line into corresponding variables
 		int i = 1;
@@ -115,10 +108,10 @@ void processCommand(int argc, char** argv, char* server_ip){
 		char sc[300] = "";
 		char* server_command_args = sc;
 		//strcat(shell_command, "ls");
-		if(l){
+		if(l){ // if -l
 			strcat(server_command_args, " -l");
 		}
-		if(pathname[0] != 0){
+		if(pathname != NULL){ // if pathname provided
 			strcat(server_command_args, " ");
 			strcat(server_command_args, pathname);
 		}
@@ -134,7 +127,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
         char* response = receiveString(socket_fd);
 
-        if(localfile[0] == 0){ // if no local file specified (print to screen)
+        if(localfile == NULL){ // if no local file specified (print to screen)
             print(response);
         }else{ // write response to file
 
@@ -145,8 +138,8 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		// default argument values
 		bool f = false;
-		char* filepath = "";
-		char* localfile = "";
+		char* filepath = NULL;
+		char* localfile = NULL;
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
@@ -175,39 +168,84 @@ void processCommand(int argc, char** argv, char* server_ip){
         }
 
         long length;
-        char* response = receiveArray(socket_fd, &length);
+        char* response_status = receiveString(socket_fd);
+        char* response_file = receiveArray(socket_fd, &length);
 
-        if(localfile[0] == 0){ // if no local file specified (print to screen)
-            // print(response);
-            printf("%.*s\n", (int)length, response);
+        if(localfile == NULL){ // if no local file specified (print to screen)
+            print(response_file);
         }else{ // write response to file
-            writeFile(localfile, response, length);
+            if(strcmp(response_status, "1") == 0){
+                writeFile(localfile, response_file, length, f);
+            }else{
+                print(response_file);
+            }
+            
         }
 
 	}else if(strcmp(command, "put") == 0){ // put localfile [-f] [newname]: copy file to server
 
+		// default argument values
+		char* f = "";
+		char* localfile = NULL;
+		char* newname = NULL;
+
+		// get arguments from command line into corresponding variables
+		if(argc <= 1){
+			printf("No localfile provided\n");
+			return;
+		}
+		localfile = argv[1];
+
+		int i = 2;
+		if(i < argc && strcmp(argv[i], "-f") == 0){
+			f = argv[i];
+			i++;
+		}
+		if(i < argc){
+			newname = argv[i];
+			i++;
+		}else{
+            newname = getFileName(localfile);
+        }
+
+        long length;
+        int status;
+        char* file = readFile(localfile, &length, &status);
+
+        if(status){ // if file read successfully
+            
+            int code = sendString(socket_fd, "put"); // command
+            if(code >= 0)
+                code = sendString(socket_fd, newname); // newname
+            if(code >= 0)
+                code = sendString(socket_fd, f); // -f
+            if(code >= 0)
+                code = sendArray(socket_fd, file, length);
+            if(code < 0)
+                printf("Error sending request\n");
+            else{
+                char* response = receiveString(socket_fd);
+                print(response);
+            }
+        }else{ // if read failed print error message
+            print(file);
+        }
+
 	}else if(strcmp(command, "sys") == 0){ // sys
 
-		// #ifdef _WIN32
-		// SYSTEM_INFO siSysInfo;
-		// GetSystemInfo(&siSysInfo);
+        // send command and delay to server
+        int code = sendString(socket_fd, "sys");
+        if(code < 0){
+            printf("Error sending request\n");
+            close(socket_fd);
+            return;
+        }
 
-		// printf("Hardware information: \n");  
-		// printf("  OEM ID: %u\n", siSysInfo.dwOemId);
-		// printf("  Number of processors: %u\n", 
-		// 	siSysInfo.dwNumberOfProcessors); 
-		// printf("  Page size: %u\n", siSysInfo.dwPageSize); 
-		// printf("  Processor type: %u\n", siSysInfo.dwProcessorType); 
-		// printf("  Minimum application address: %lx\n", 
-		// 	siSysInfo.lpMinimumApplicationAddress); 
-		// printf("  Maximum application address: %lx\n", 
-		// 	siSysInfo.lpMaximumApplicationAddress); 
-		// printf("  Active processor mask: %u\n", 
-		// 	siSysInfo.dwActiveProcessorMask);
-		// #endif
+        // get and display respons
+        char* response = receiveString(socket_fd);
+        print(response);
 
 	}else if(strcmp(command, "delay") == 0){ // delay integer
-		int delay = 0;
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){

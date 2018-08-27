@@ -6,9 +6,48 @@
 #include <unistd.h>
 
 #include "socket.c"
+#include "file.c"
 
 #define PORT 46564
 #define MESSAGE_BUFFER_SIZE 1024
+
+typedef enum { false, true } bool;
+
+char* shell(char* shell_command){
+    // execute command and store result, status and/or error
+    FILE *command_fp;
+    int status;
+
+    // execute
+    command_fp = popen(shell_command, "r");
+    if(command_fp == NULL){
+        return "Error: could not execute shell command";
+    }
+
+    // get length of file
+    int tmp_size = 128;
+    int str_max_size = 2*tmp_size;
+    char* tmp = calloc(tmp_size, sizeof(char));
+    char* response = calloc(str_max_size, sizeof(char));
+
+    // read file into string
+    while(fgets(tmp, tmp_size, command_fp) != NULL){
+
+        // if buffer is full, double size
+        if(strlen(response) + tmp_size + 1 >= str_max_size){
+            str_max_size *= 2;
+            char* new = calloc(str_max_size, sizeof(char));
+            strcpy(new, response);
+            free(response);
+            response = new;
+        }
+
+        // append next section
+        strcat(response, tmp);
+    }
+
+    return response;
+}
 
 void main(){
     // variables
@@ -60,46 +99,18 @@ void main(){
         // print command and then execute it
         printf("> %s\n", command);
 
+        // check for each command and act accordingly
         if(strcmp(command, "list") == 0){ // list args
 
-            // get shell arguments
+            // get shell arguments and compose chell command string
             char* shell_args = receiveString(connection_socket_fd);
             char shell_base_command[] = "ls";
             char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
             strcat(shell_command, shell_base_command);
             strcat(shell_command, shell_args);
 
-            // execute command and store result, status and/or error
-            FILE *command_fp;
-            int status;
-
-            // execute
-            command_fp = popen(shell_command, "r");
-            if(command_fp == NULL){
-                printf("Unknown error\n");
-            }
-
-            // get length of file
-            int tmp_size = 128;
-            int str_max_size = 2*tmp_size;
-            char* tmp = calloc(tmp_size, sizeof(char));
-            char* response = calloc(str_max_size, sizeof(char));
-
-            // read file into string
-            while(fgets(tmp, tmp_size, command_fp) != NULL){
-
-                // if buffer is full, double size
-                if(strlen(response) + tmp_size + 1 >= str_max_size){
-                    str_max_size *= 2;
-                    char* new = calloc(str_max_size, sizeof(char));
-                    strcpy(new, response);
-                    free(response);
-                    response = new;
-                }
-
-                // append next section
-                strcat(response, tmp);
-            }
+            // execute shell command
+            char* response = shell(shell_command);
             
             // respond
             sendString(connection_socket_fd, response);
@@ -109,26 +120,36 @@ void main(){
             // get filepath
             char* filepath = receiveString(connection_socket_fd);
 
-            char* buffer = 0;
             long length;
-            FILE* f = fopen (filepath, "r");
+            int status;
+            char* file = readFile(filepath, &length, &status);
+            char status_str[MESSAGE_BUFFER_SIZE];
+            sprintf(status_str, "%i", status);
 
-            if(f){
-                fseek (f, 0, SEEK_END);
-                length = ftell (f);
-                fseek (f, 0, SEEK_SET);
-
-                buffer = malloc(length);
-                if (buffer){
-                    fread(buffer, sizeof(char), length, f);
-                }
-                fclose (f);
-            }
-
-            sendArray(connection_socket_fd, buffer, length);
-
+            sendString(connection_socket_fd, status_str); // status/read success
+            sendArray(connection_socket_fd, file, length); // file content or error message 
+            
         }else if(strcmp(command, "put") == 0){
             
+            // get all parameters
+            long length;
+            char* newname = receiveString(connection_socket_fd);
+            char* f_str = receiveString(connection_socket_fd);
+            char* file = receiveArray(connection_socket_fd, &length);
+
+            // decode -f parameter
+            bool f = false;
+            if(strcmp(f_str, "-f") == 0)
+                f = true;
+
+            // write file to disk
+            char* status = writeFile(newname, file, length, f);
+
+            if(status == NULL)
+                status = "File copied successfully";
+
+            sendString(connection_socket_fd, status);
+
         }else if(strcmp(command, "sys") == 0){
             
         }else if(strcmp(command, "delay") == 0){ // delay integer
