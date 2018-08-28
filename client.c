@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <wordexp.h>
+#include <sys/time.h>
 
 #include "socket.c"
 #include "file.c"
@@ -76,6 +77,13 @@ void processCommand(int argc, char** argv, char* server_ip){
     if(socket_fd == 0)
         return;
 
+    // setup timing related values
+    bool server_responded = false;
+    struct timeval  start_time, end_time;
+
+    gettimeofday(&start_time, NULL);
+
+    // get command
     char* command = argv[0];
 	if(strcmp(command, "list") == 0){ // list [-l] [-f] [pathname] [localfile]
 
@@ -125,12 +133,15 @@ void processCommand(int argc, char** argv, char* server_ip){
             return;
         }
 
-        char* response = receiveString(socket_fd);
+        long length;
+        char* response = receiveArray(socket_fd, &length);
 
         if(localfile == NULL){ // if no local file specified (print to screen)
             print(response);
         }else{ // write response to file
-
+            char* error = writeFile(localfile, response, length-1, f);
+            if(error != NULL)
+                printf("%s\n", error);
         }
 
 
@@ -159,6 +170,9 @@ void processCommand(int argc, char** argv, char* server_ip){
 			i++;
 		}
 
+        // save current time
+        // gettimeofday(&start_time, NULL);
+
         int code = sendString(socket_fd, "get");
         if(code >= 0)
             code = sendString(socket_fd, filepath);
@@ -171,6 +185,9 @@ void processCommand(int argc, char** argv, char* server_ip){
         long length;
         char* response_status = receiveString(socket_fd);
         char* response_file = receiveArray(socket_fd, &length);
+
+        // save current time
+        //gettimeofday(&end_time, NULL);
 
         if(localfile == NULL){ // if no local file specified (print to screen)
             print(response_file);
@@ -274,6 +291,13 @@ void processCommand(int argc, char** argv, char* server_ip){
 	}else{ // unknown command
         printf("Command not recognised\n");
     }
+    
+    gettimeofday(&end_time, NULL);
+
+    double time_elapsed = (double) (end_time.tv_usec - start_time.tv_usec) / 1000 +
+        (double) (end_time.tv_sec - start_time.tv_sec) * 1000;
+
+    printf ("Response time = %f ms\n", time_elapsed);
 
     close(socket_fd);
     // TODO close socket

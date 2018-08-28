@@ -39,21 +39,21 @@ Requiements
   - delay integer: wait interger seconds and then retrurn integer
 
 - marking criteria
-  - Server address as a command line argument
-  - Client reports time taken for server to respond
+  - ✓ Server address as a command line argument
+  - ~ Client reports time taken for server to respond
   - Client runs continously in a loop but is non-blocking
   - Server spawns new process for new requests on Win32
   - Server spawns new process for new requests on Unix
   - Compiles and runs on both Win32 and Unix
-  - Correct operation of list -l command on Unix
+  - ✓ Correct operation of list -l command on Unix
   - Correct operation of list -l command on Win32
-  - Correct operation of get command file data correctly copied to screen or file as needed
-  - Correct operation of put command file data correctly copied
+  - ✓ Correct operation of get command file data correctly copied to screen or file as needed
+  - ✓ Correct operation of put command file data correctly copied
   - Correct operation of sys command on Unix
   - Correct operation of sys command on Win32
   - Scrolling list & get that pauses after 40 lines
-  - Put command create remote file with same name or specified name or return error
-  - Correct operation of the -f option on list, get and put commands
+  - ✓ Put command create remote file with same name or specified name or return error
+  - ✓ Correct operation of the -f option on list, get and put commands
   - Commands Commands accept relative and absolute path names for local and remote paths
   - Correct operation of delay command
   - Correct operation of output redirection on Win32
