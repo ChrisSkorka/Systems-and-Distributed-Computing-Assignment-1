@@ -1,0 +1,8 @@
+project: client.exe server.exe
+
+client.exe: client.c socket.c file.c
+	gcc -o client.exe client.c -lws2_32
+
+server.exe: server.c socket.c file.c
+	gcc -o server.exe server.c -lws2_32
+	

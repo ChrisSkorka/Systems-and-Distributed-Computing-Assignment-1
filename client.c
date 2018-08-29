@@ -39,11 +39,15 @@ void processCommand(int argc, char** argv, char* server_ip){
     if(socket_fd == 0)
         return;
 
-    // setup timing related values
+    char* print_to_screen = NULL;
+    char* print_to_file = NULL;
+    long  print_to_file_length = 0;
+    char* localfile = NULL;
+    bool override_file = false;
     bool server_responded = false;
-    struct timeval  start_time, end_time;
 
-    gettimeofday(&start_time, NULL);
+    // setup timing related values
+    struct timeval  start_time, end_time;
 
     // get command
     char* command = argv[0];
@@ -51,9 +55,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		// default argument values
 		bool l = false;
-		bool f = false;
 		char* pathname = NULL;
-		char* localfile = NULL;
 
 		// get arguments from command line into corresponding variables
 		int i = 1;
@@ -62,7 +64,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 			i++;
 		}
 		if(i < argc && strcmp(argv[i], "-f") == 0){
-			f = true;
+			override_file = true;
 			i++;
 		}
 		if(i < argc){
@@ -86,33 +88,35 @@ void processCommand(int argc, char** argv, char* server_ip){
 			strcat(server_command_args, pathname);
 		}
 
+        // start timer
+        gettimeofday(&start_time, NULL);
+
         int code = sendString(socket_fd, "list");
         if(code >= 0)
             code = sendString(socket_fd, server_command_args);
         if(code < 0){
             printf("Error sending request\n");
-            close(socket_fd);
-            return;
+        }else{ // if request send successfully
+
+            long length;
+            char* response = receiveArray(socket_fd, &length);
+
+            // time end of transmission
+            gettimeofday(&end_time, NULL);
+            server_responded = true;
+
+            if(localfile == NULL){ // if no local file specified (print to screen)
+                print_to_screen = response;
+            }else{ // write response to file
+                print_to_file = response;
+                print_to_file_length = length;
+            }
         }
-
-        long length;
-        char* response = receiveArray(socket_fd, &length);
-
-        if(localfile == NULL){ // if no local file specified (print to screen)
-            print(response);
-        }else{ // write response to file
-            char* error = writeFile(localfile, response, length-1, f);
-            if(error != NULL)
-                printf("%s\n", error);
-        }
-
 
 	}else if(strcmp(command, "get") == 0){ // get filepath [-f] [localfile]
 
 		// default argument values
-		bool f = false;
 		char* filepath = NULL;
-		char* localfile = NULL;
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
@@ -124,7 +128,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		int i = 2;
 		if(i < argc && strcmp(argv[i], "-f") == 0){
-			f = true;
+			override_file = true;
 			i++;
 		}
 		if(i < argc){
@@ -132,36 +136,37 @@ void processCommand(int argc, char** argv, char* server_ip){
 			i++;
 		}
 
-        // save current time
-        // gettimeofday(&start_time, NULL);
+        // start timer
+        gettimeofday(&start_time, NULL);
 
         int code = sendString(socket_fd, "get");
         if(code >= 0)
             code = sendString(socket_fd, filepath);
         if(code < 0){
             printf("Error sending request\n");
-            close(socket_fd);
-            return;
-        }
+        }else{ // if request send successfully
 
-        long length;
-        char* response_status = receiveString(socket_fd);
-        char* response_file = receiveArray(socket_fd, &length);
+            long length;
+            char* response_status = receiveString(socket_fd);
+            char* response_file = receiveArray(socket_fd, &length);
 
-        // save current time
-        //gettimeofday(&end_time, NULL);
+            // time end of transmission
+            gettimeofday(&end_time, NULL);
+            server_responded = true;
 
-        if(localfile == NULL){ // if no local file specified (print to screen)
-            print(response_file);
-        }else{ // write response to file
-            if(strcmp(response_status, "1") == 0){
-                char* error = writeFile(localfile, response_file, length, f);
-                if(error != NULL)
-                    printf("%s\n", error);
-            }else{
-                print(response_file);
+            // save current time
+            //gettimeofday(&end_time, NULL);
+
+            if(localfile == NULL){ // if no local file specified (print to screen)
+                print_to_screen = response_file;
+            }else{ // write response to file
+                if(strcmp(response_status, "1") == 0){
+                    print_to_file = response_file;
+                    print_to_file_length = length;
+                }else{ // if error on server side
+                    print_to_screen = response_file;
+                }
             }
-            
         }
 
 	}else if(strcmp(command, "put") == 0){ // put localfile [-f] [newname]: copy file to server
@@ -174,6 +179,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
 			printf("No localfile provided\n");
+            close(socket_fd);
 			return;
 		}
 		localfile = argv[1];
@@ -195,6 +201,9 @@ void processCommand(int argc, char** argv, char* server_ip){
         char* file = readFile(localfile, &length, &status);
 
         if(status){ // if file read successfully
+
+            // start timer
+            gettimeofday(&start_time, NULL);
             
             int code = sendString(socket_fd, "put"); // command
             if(code >= 0)
@@ -205,27 +214,42 @@ void processCommand(int argc, char** argv, char* server_ip){
                 code = sendArray(socket_fd, file, length);
             if(code < 0)
                 printf("Error sending request\n");
-            else{
+            else{ // if request send successfully
+
                 char* response = receiveString(socket_fd);
-                print(response);
+
+                // time end of transmission
+                gettimeofday(&end_time, NULL);
+
+                print_to_screen = response;
+                server_responded = true;
+
             }
         }else{ // if read failed print error message
-            print(file);
+            print_to_screen = file;
         }
 
 	}else if(strcmp(command, "sys") == 0){ // sys
+
+        // start timer
+        gettimeofday(&start_time, NULL);
 
         // send command and delay to server
         int code = sendString(socket_fd, "sys");
         if(code < 0){
             printf("Error sending request\n");
-            close(socket_fd);
-            return;
-        }
+        }else{ // if request send successfully
 
-        // get and display respons
-        char* response = receiveString(socket_fd);
-        print(response);
+            // get and display respons
+            char* response = receiveString(socket_fd);
+
+            // time end of transmission
+            gettimeofday(&end_time, NULL);
+
+            print_to_screen = response;
+            server_responded = true;
+
+        }
 
 	}else if(strcmp(command, "delay") == 0){ // delay integer
 
@@ -236,30 +260,56 @@ void processCommand(int argc, char** argv, char* server_ip){
 			return;
 		}
 		
+        // start timer
+        gettimeofday(&start_time, NULL);
+
         // send command and delay to server
         int code = sendString(socket_fd, "delay");
         if(code >= 0)
             code = sendString(socket_fd, argv[1]);
         if(code < 0){
             printf("Error sending request\n");
-            close(socket_fd);
-            return;
-        }
+        }else{ // if request send successfully
 
-        // get and display respons
-        char* response = receiveString(socket_fd);
-        print(response);
+            // get and display respons
+            char* response = receiveString(socket_fd);
+
+            // time end of transmission
+            gettimeofday(&end_time, NULL);
+
+            print_to_screen = response;
+            server_responded = true;
+
+        }
         
 	}else{ // unknown command
-        printf("Command not recognised\n");
+        print_to_screen = "Command not recognised";
     }
     
-    gettimeofday(&end_time, NULL);
 
     double time_elapsed = (double) (end_time.tv_usec - start_time.tv_usec) / 1000 +
         (double) (end_time.tv_sec - start_time.tv_sec) * 1000;
 
-    printf ("Response time = %f ms\n", time_elapsed);
+    
+
+    if(server_responded){
+        printf ("Server response (%f ms):\n", time_elapsed);
+
+        // if there is content to be printed to screen
+        if(print_to_screen != NULL){
+            print(print_to_screen);
+        }
+
+        // if there is content to be written to file
+        if(print_to_file != NULL){
+            char* error = writeFile(localfile, print_to_file, print_to_file_length, override_file);
+            if(error != NULL)
+                printf("%s\n", error);
+        }
+
+    }else{ // if some error occured before sending the request
+        printf("%s\n", print_to_screen);
+    }
 
     close(socket_fd);
     // TODO close socket

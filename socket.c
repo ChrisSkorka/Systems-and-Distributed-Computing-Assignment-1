@@ -63,9 +63,15 @@ char* receiveArray(int socket_fd, long* len){
     char* message = calloc(length + 1, sizeof(char));
 
     // read actual response
-    code = recv(socket_fd, message, length, 0);
-    if (code < 0)
-        printf("Error reading from socket\n");
+    int len_recieved = 0;
+    while(len_recieved < length && code > -1){
+        code = recv(socket_fd, &message[len_recieved], length, 0);
+        if (code < 0){
+            printf("Error reading from socket\n");
+            break;
+        }else
+            len_recieved += code;
+    }
 
     return message;
 }
@@ -84,6 +90,15 @@ int connectToServer(char* server_ip){
     struct sockaddr_in serv_addr;
     struct hostent *server;
 
+    // setup sockets for windows
+    #if defined(_WIN32) || defined(_WIN64)
+        WSADATA wsa;
+        if(WSAStartup(MAKEWORD(2,2),&wsa) != 0){
+            printf("Failed setting up socket for win. Error Code : %d", WSAGetLastError());
+            return 0;
+        }
+    #endif
+
     // create socket
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1){
@@ -100,8 +115,11 @@ int connectToServer(char* server_ip){
 
     // setup serv_addr struct for socket
     // bzero((char *) &serv_addr, sizeof(serv_addr));
-    // serv_addr.sin_family = AF_INET;
-    // bcopy((char *)server->h_addr, 
+    serv_addr.sin_family = AF_INET;
+    memcpy((char *)&serv_addr.sin_addr.s_addr,
+        (char *)server->h_addr,
+        server->h_length);
+    // cbopy((char *)server->h_addr, 
     //     (char *)&serv_addr.sin_addr.s_addr,
     //     server->h_length);
     serv_addr.sin_port = htons(PORT);

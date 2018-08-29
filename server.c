@@ -59,6 +59,15 @@ void main(){
     struct sockaddr client;
     int socket_fd, connection_socket_fd, code;
 
+    // setup sockets for windows
+    #if defined(_WIN32) || defined(_WIN64)
+        WSADATA wsa;
+        if(WSAStartup(MAKEWORD(2,2),&wsa) != 0){
+            printf("Failed setting up socket for win. Error Code : %d", WSAGetLastError());
+            return;
+        }
+    #endif
+
     // create socket
     socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(socket_fd == -1){
@@ -108,7 +117,15 @@ void main(){
 
             // get shell arguments and compose chell command string
             char* shell_args = receiveString(connection_socket_fd);
-            char shell_base_command[] = "ls";
+
+            char* shell_base_command;
+
+            #if defined(_WIN32) || defined(_WIN64)
+                shell_base_command = "dir";
+            #else
+                shell_base_command = "ls";
+            #endif
+            
             char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
             strcat(shell_command, shell_base_command);
             strcat(shell_command, shell_args);
