@@ -1,7 +1,4 @@
-project: command client server
-
-command: command.c
-	gcc -o command command.c
+project: client server
 
 client: client.c socket.c file.c
 	gcc -o client client.c

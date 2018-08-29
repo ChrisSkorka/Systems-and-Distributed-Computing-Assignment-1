@@ -1,17 +1,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <unistd.h>
 
 #include "socket.c"
 #include "file.c"
 
+#if defined(_WIN32) || defined(_WIN64)
+    #include <winsock2.h>
+#else
+    #include <sys/socket.h>
+#endif
+
 #define PORT 46564
 #define MESSAGE_BUFFER_SIZE 1024
 
-typedef enum { false, true } bool;
+typedef enum {false, true} bool;
 
 char* shell(char* shell_command){
     // execute command and store result, status and/or error

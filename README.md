@@ -54,11 +54,11 @@ Requiements
   - Scrolling list & get that pauses after 40 lines
   - ✓ Put command create remote file with same name or specified name or return error
   - ✓ Correct operation of the -f option on list, get and put commands
-  - Commands Commands accept relative and absolute path names for local and remote paths
-  - Correct operation of delay command
+  - Commands accept relative and absolute path names for local and remote paths
+  - ✓ Correct operation of delay command
   - Correct operation of output redirection on Win32
   - Correct operation of output redirection on Unix
   - Server error handling on Win32 and Unix
   - Zombie removal
   - Documentation
-  - Code style, completeness, rpbust, quality
+  - Code style, completeness, robust, quality

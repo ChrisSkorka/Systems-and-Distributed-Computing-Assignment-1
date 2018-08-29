@@ -1,63 +1,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <unistd.h>
-#include <netdb.h>
-#include <wordexp.h>
 #include <sys/time.h>
 
 #include "socket.c"
 #include "file.c"
 
-#define PORT 46564
+#if defined(_WIN32) || defined(_WIN64)
+    #include <shellapi.h>
+#else
+    #include <wordexp.h>
+#endif
+
 #define COMMAND_BUFFER_SIZE 512
-#define MESSAGE_BUFFER_SIZE 1024
 
 typedef enum { false, true } bool;
 
 void lg(char* s){
     if(true)
         printf("Log: %s\n", s);
-}
-
-int connectToServer(char* server_ip){
-    
-    // variables
-    int fd;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-
-    // create socket
-    fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(fd == -1){
-        printf("Error opening socket\n");
-        return 0;
-    }
-
-    // get host from args into server struct
-    server = gethostbyname(server_ip);
-    if (server == NULL) {
-        printf("Error no such host\n");
-        return 0;
-    }
-
-    // setup serv_addr struct for socket
-    //bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr, 
-        (char *)&serv_addr.sin_addr.s_addr,
-        server->h_length);
-    serv_addr.sin_port = htons(PORT);
-
-    // connect to socket
-    if (connect(fd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
-        printf("Error connecting\n");
-        return 0;
-    }
-
-    return fd;
 }
 
 void print(char* message){
@@ -319,10 +281,9 @@ void main(int argc, char** argv){
     while(1){
         // query for command
         printf("> ");
-        bzero(cmd_buffer, COMMAND_BUFFER_SIZE);
+        // bzero(cmd_buffer, COMMAND_BUFFER_SIZE);
         fgets(cmd_buffer, COMMAND_BUFFER_SIZE - 1, stdin);
-        wordexp_t in_arg_struct;
-        char **in_argv;
+        char** in_argv;
         int in_argc = 0;
 
         // remove new line character at the end if input
@@ -333,9 +294,14 @@ void main(int argc, char** argv){
             break;
 
         // break arguments individual strings
-        wordexp(cmd_buffer, &in_arg_struct, 0);
-        in_argv = in_arg_struct.we_wordv;
-        in_argc = in_arg_struct.we_wordc;
+        #if defined(_WIN32) || defined(_WIN64)
+            in_argv = (char**)CommandLineToArgvW((LPCWSTR)cmd_buffer, &in_argc);
+        #else
+            wordexp_t in_arg_struct;
+            wordexp(cmd_buffer, &in_arg_struct, 0);
+            in_argv = in_arg_struct.we_wordv;
+            in_argc = in_arg_struct.we_wordc;
+        #endif
         
         // for(int i = 0; i < in_argc; i++)
         //     printf("%s\n", in_argv[i]);
