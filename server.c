@@ -104,93 +104,101 @@ void main(){
             continue;
         }
         
-        printf("New connection\n");
-        
-        // base command
-        char* command = receiveString(connection_socket_fd);
+        int process = fork();
 
-        // print command and then execute it
-        printf("> %s\n", command);
-
-        // check for each command and act accordingly
-        if(strcmp(command, "list") == 0){ // list args
-
-            // get shell arguments and compose chell command string
-            char* shell_args = receiveString(connection_socket_fd);
-
-            char* shell_base_command;
-
-            #if defined(_WIN32) || defined(_WIN64)
-                shell_base_command = "dir";
-            #else
-                shell_base_command = "ls";
-            #endif
-            
-            char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
-            strcat(shell_command, shell_base_command);
-            strcat(shell_command, shell_args);
-
-            // execute shell command
-            char* response = shell(shell_command);
-            
-            // respond
-            sendString(connection_socket_fd, response);
-
-        }else if(strcmp(command, "get") == 0){ // get filepath
-        
-            // get filepath
-            char* filepath = receiveString(connection_socket_fd);
-
-            long length;
-            int status;
-            char* file = readFile(filepath, &length, &status);
-            char status_str[MESSAGE_BUFFER_SIZE];
-            sprintf(status_str, "%i", status);
-
-            printf("%s %s\n", status_str, file);
-
-            sendString(connection_socket_fd, status_str); // status/read success
-            if(status)
-                sendArray(connection_socket_fd, file, length); // file content 
-            else
-                sendString(connection_socket_fd, file); // send error message
-            
-        }else if(strcmp(command, "put") == 0){
-            
-            // get all parameters
-            long length;
-            char* newname = receiveString(connection_socket_fd);
-            char* f_str = receiveString(connection_socket_fd);
-            char* file = receiveArray(connection_socket_fd, &length);
-
-            // decode -f parameter
-            bool f = false;
-            if(strcmp(f_str, "-f") == 0)
-                f = true;
-
-            // write file to disk
-            char* status = writeFile(newname, file, length, f);
-
-            if(status == NULL)
-                status = "File copied successfully";
-
-            sendString(connection_socket_fd, status);
-
-        }else if(strcmp(command, "sys") == 0){
-            // respond
-            sendString(connection_socket_fd, "I'm afraid I cannot do that");
-        }else if(strcmp(command, "delay") == 0){ // delay integer
-            // read delay duration
-            char* delay_str = receiveString(connection_socket_fd);
-            int delay = atoi(delay_str);
-
-            // sleep for specified time
-            sleep(delay);
-
-            // respond
-            sendString(connection_socket_fd, delay_str);
+        // if child process exit listining loop and process request
+        if(process == 0){
+            break;
         }
 
-        close(connection_socket_fd);
     }
+
+    printf("New connection\n");
+    
+    // base command
+    char* command = receiveString(connection_socket_fd);
+
+    // print command and then execute it
+    printf("> %s\n", command);
+
+    // check for each command and act accordingly
+    if(strcmp(command, "list") == 0){ // list args
+
+        // get shell arguments and compose chell command string
+        char* shell_args = receiveString(connection_socket_fd);
+
+        char* shell_base_command;
+
+        #if defined(_WIN32) || defined(_WIN64)
+            shell_base_command = "dir";
+        #else
+            shell_base_command = "ls";
+        #endif
+        
+        char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
+        strcat(shell_command, shell_base_command);
+        strcat(shell_command, shell_args);
+
+        // execute shell command
+        char* response = shell(shell_command);
+        
+        // respond
+        sendString(connection_socket_fd, response);
+
+    }else if(strcmp(command, "get") == 0){ // get filepath
+    
+        // get filepath
+        char* filepath = receiveString(connection_socket_fd);
+
+        long length;
+        int status;
+        char* file = readFile(filepath, &length, &status);
+        char status_str[MESSAGE_BUFFER_SIZE];
+        sprintf(status_str, "%i", status);
+
+        printf("%s %s\n", status_str, file);
+
+        sendString(connection_socket_fd, status_str); // status/read success
+        if(status)
+            sendArray(connection_socket_fd, file, length); // file content 
+        else
+            sendString(connection_socket_fd, file); // send error message
+        
+    }else if(strcmp(command, "put") == 0){
+        
+        // get all parameters
+        long length;
+        char* newname = receiveString(connection_socket_fd);
+        char* f_str = receiveString(connection_socket_fd);
+        char* file = receiveArray(connection_socket_fd, &length);
+
+        // decode -f parameter
+        bool f = false;
+        if(strcmp(f_str, "-f") == 0)
+            f = true;
+
+        // write file to disk
+        char* status = writeFile(newname, file, length, f);
+
+        if(status == NULL)
+            status = "File copied successfully";
+
+        sendString(connection_socket_fd, status);
+
+    }else if(strcmp(command, "sys") == 0){
+        // respond
+        sendString(connection_socket_fd, "I'm afraid I cannot do that");
+    }else if(strcmp(command, "delay") == 0){ // delay integer
+        // read delay duration
+        char* delay_str = receiveString(connection_socket_fd);
+        int delay = atoi(delay_str);
+
+        // sleep for specified time
+        sleep(delay);
+
+        // respond
+        sendString(connection_socket_fd, delay_str);
+    }
+
+    close(connection_socket_fd);
 }
