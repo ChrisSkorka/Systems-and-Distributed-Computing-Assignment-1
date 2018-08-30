@@ -23,9 +23,24 @@ void lg(char* s){
 }
 
 void print(char* message){
-    printf("%s\n", message);
+    // printf("\033[1A");
+    // printf("%s\n", message);
+    // printf("\033[1B");
 
-    // TODO print 40 lines at a time
+    int lines_at_a_time = 4;
+    char* line;
+    line = strtok(message, "\n");
+
+    while(line != NULL){
+        for(int i = 0; i < lines_at_a_time && line != NULL; i++){
+            printf("%s\n", line);
+            line = strtok(NULL, "\n");
+        }
+        if(line != NULL){
+            printf("press any key to continue\r");
+            // wait for key
+        }
+    }
 }
 
 void processCommand(int argc, char** argv, char* server_ip){
@@ -95,7 +110,7 @@ void processCommand(int argc, char** argv, char* server_ip){
         if(code >= 0)
             code = sendString(socket_fd, server_command_args);
         if(code < 0){
-            printf("Error sending request\n");
+            print("Error sending request\n");
         }else{ // if request send successfully
 
             long length;
@@ -120,7 +135,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
-			printf("No filepath provided\n");
+			print("No filepath provided\n");
             close(socket_fd);
 			return;
 		}
@@ -143,7 +158,7 @@ void processCommand(int argc, char** argv, char* server_ip){
         if(code >= 0)
             code = sendString(socket_fd, filepath);
         if(code < 0){
-            printf("Error sending request\n");
+            print("Error sending request\n");
         }else{ // if request send successfully
 
             long length;
@@ -178,7 +193,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
-			printf("No localfile provided\n");
+			print("No localfile provided\n");
             close(socket_fd);
 			return;
 		}
@@ -237,7 +252,7 @@ void processCommand(int argc, char** argv, char* server_ip){
         // send command and delay to server
         int code = sendString(socket_fd, "sys");
         if(code < 0){
-            printf("Error sending request\n");
+            print("Error sending request\n");
         }else{ // if request send successfully
 
             // get and display respons
@@ -255,7 +270,7 @@ void processCommand(int argc, char** argv, char* server_ip){
 
 		// get arguments from command line into corresponding variables
 		if(argc <= 1){
-			printf("No delay provided\n");
+			print("No delay provided\n");
             close(socket_fd);
 			return;
 		}
@@ -268,7 +283,7 @@ void processCommand(int argc, char** argv, char* server_ip){
         if(code >= 0)
             code = sendString(socket_fd, argv[1]);
         if(code < 0){
-            printf("Error sending request\n");
+            print("Error sending request\n");
         }else{ // if request send successfully
 
             // get and display respons
@@ -286,14 +301,14 @@ void processCommand(int argc, char** argv, char* server_ip){
         print_to_screen = "Command not recognised";
     }
     
-
+    // calculate time taken for server to respond
     double time_elapsed = (double) (end_time.tv_usec - start_time.tv_usec) / 1000 +
         (double) (end_time.tv_sec - start_time.tv_sec) * 1000;
 
-    
-
     if(server_responded){
-        printf ("Server response (%f ms):\n", time_elapsed);
+        char response_time_str[128];
+        sprintf(response_time_str, "Server response (%f ms):\n", time_elapsed);
+        print(response_time_str);
 
         // if there is content to be printed to screen
         if(print_to_screen != NULL){
@@ -304,11 +319,11 @@ void processCommand(int argc, char** argv, char* server_ip){
         if(print_to_file != NULL){
             char* error = writeFile(localfile, print_to_file, print_to_file_length, override_file);
             if(error != NULL)
-                printf("%s\n", error);
+                print(error);
         }
 
     }else{ // if some error occured before sending the request
-        printf("%s\n", print_to_screen);
+        print(print_to_screen);
     }
 
     close(socket_fd);
@@ -330,34 +345,42 @@ void main(int argc, char** argv){
     // continuous command execution loop
     while(1){
         // query for command
-        printf("> ");
+        // printf("> ");
         // bzero(cmd_buffer, COMMAND_BUFFER_SIZE);
         fgets(cmd_buffer, COMMAND_BUFFER_SIZE - 1, stdin);
-        char** in_argv;
-        int in_argc = 0;
 
         // remove new line character at the end if input
         cmd_buffer[strlen(cmd_buffer) - 1] = 0;
 
         // if command is exit, break loop before sending any command
         if(strcmp(cmd_buffer, "exit") == 0)
+            return;
+
+        // fork here
+        int process = fork();
+        if(process == 0){
             break;
-
-        // break arguments individual strings
-        #if defined(_WIN32) || defined(_WIN64)
-            in_argv = (char**)CommandLineToArgvW((LPCWSTR)cmd_buffer, &in_argc);
-        #else
-            wordexp_t in_arg_struct;
-            wordexp(cmd_buffer, &in_arg_struct, 0);
-            in_argv = in_arg_struct.we_wordv;
-            in_argc = in_arg_struct.we_wordc;
-        #endif
-        
-        // for(int i = 0; i < in_argc; i++)
-        //     printf("%s\n", in_argv[i]);
-        // wordfree(&cmd_arguments_struct);
-
-        // process command
-        processCommand(in_argc, in_argv, server_ip);
+        }
     }
+
+    // variables for split arguments
+    char** in_argv;
+    int in_argc = 0;
+
+    // break arguments individual strings
+    #if defined(_WIN32) || defined(_WIN64)
+        in_argv = (char**)CommandLineToArgvW((LPCWSTR)cmd_buffer, &in_argc);
+    #else
+        wordexp_t in_arg_struct;
+        wordexp(cmd_buffer, &in_arg_struct, 0);
+        in_argv = in_arg_struct.we_wordv;
+        in_argc = in_arg_struct.we_wordc;
+    #endif
+    
+    // for(int i = 0; i < in_argc; i++)
+    //     printf("%s\n", in_argv[i]);
+    // wordfree(&cmd_arguments_struct);
+
+    // process command
+    processCommand(in_argc, in_argv, server_ip);
 }

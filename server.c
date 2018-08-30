@@ -186,8 +186,37 @@ void main(){
         sendString(connection_socket_fd, status);
 
     }else if(strcmp(command, "sys") == 0){
+
+        char* response;
+        char* os_info_header = "OS info:\n";
+        char* os_info = "";
+        char* cpu_info_header = "CPU info:\n";
+        char* cpu_info = "";
+
+        #if defined(_WIN32) || defined(_WIN64)
+            //os_name = "Windows";
+        #else
+            os_info = shell("cat /etc/os-release | grep ID");
+            cpu_info = shell("lscpu");
+        #endif
+
+        // get length of response
+        long length = strlen(os_info_header) + 
+            strlen(os_info) + 
+            strlen(cpu_info_header) + 
+            strlen(cpu_info) + 1;
+
+        response = malloc(length);
+        response[0] = 0;
+
+        strcat(response, os_info_header);
+        strcat(response, os_info);
+        strcat(response, cpu_info_header);
+        strcat(response, cpu_info);
+
         // respond
-        sendString(connection_socket_fd, "I'm afraid I cannot do that");
+        sendString(connection_socket_fd, response);
+
     }else if(strcmp(command, "delay") == 0){ // delay integer
         // read delay duration
         char* delay_str = receiveString(connection_socket_fd);

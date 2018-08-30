@@ -102,7 +102,8 @@ int connectToServer(char* server_ip){
     // create socket
     fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1){
-        printf("Error opening socket\n");
+        // WSAGetLastError();
+        printf("Error opening socket, error code: %d\n", fd);
         return 0;
     }
 
