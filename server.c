@@ -94,7 +94,6 @@ void main(){
     listen(socket_fd, 5);
 
     while(1){
-        printf("Ready for connection\n");
 
         // accept any connection
         int clienlen = sizeof(client);
@@ -113,8 +112,6 @@ void main(){
 
     }
 
-    printf("New connection\n");
-    
     // base command
     char* command = receiveString(connection_socket_fd);
 
@@ -155,8 +152,6 @@ void main(){
         char* file = readFile(filepath, &length, &status);
         char status_str[MESSAGE_BUFFER_SIZE];
         sprintf(status_str, "%i", status);
-
-        printf("%s %s\n", status_str, file);
 
         sendString(connection_socket_fd, status_str); // status/read success
         if(status)

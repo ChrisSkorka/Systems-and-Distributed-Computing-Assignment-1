@@ -37,13 +37,15 @@ void print(char* message){
             line = strtok(NULL, "\n");
         }
         if(line != NULL){
-            printf("press any key to continue\r");
-            // wait for key
+            printf("press ENTER key to continue\r");
+            getchar();
+            printf("\033[1A");
+            printf("                           \r");
         }
     }
 }
 
-void processCommand(int argc, char** argv, char* server_ip){
+void processCommand(int argc, char** argv, char* server_ip, char* plain_command){
 
     if(argc < 1){
         printf("No Command provided\n");
@@ -306,8 +308,10 @@ void processCommand(int argc, char** argv, char* server_ip){
         (double) (end_time.tv_sec - start_time.tv_sec) * 1000;
 
     if(server_responded){
+        printf("\r");
+
         char response_time_str[128];
-        sprintf(response_time_str, "Server response (%f ms):\n", time_elapsed);
+        sprintf(response_time_str, "Server response (%f ms):\n<%s>\n", time_elapsed, plain_command);
         print(response_time_str);
 
         // if there is content to be printed to screen
@@ -325,6 +329,7 @@ void processCommand(int argc, char** argv, char* server_ip){
     }else{ // if some error occured before sending the request
         print(print_to_screen);
     }
+    printf("\n> ");
 
     close(socket_fd);
     // TODO close socket
@@ -342,10 +347,16 @@ void main(int argc, char** argv){
     char cmd_buffer[COMMAND_BUFFER_SIZE];
     // char* cmd_buffer = malloc(COMMAND_BUFFER_SIZE);
 
+    printf("----------------------------------------\n");
+    printf("| Client is ready, commands are        |\n");
+    printf("| executed in the background           |\n");
+    printf("| Commands: list, get, put, sys, delay |\n");
+    printf("----------------------------------------\n");
+
     // continuous command execution loop
     while(1){
         // query for command
-        // printf("> ");
+        printf("> ");
         // bzero(cmd_buffer, COMMAND_BUFFER_SIZE);
         fgets(cmd_buffer, COMMAND_BUFFER_SIZE - 1, stdin);
 
@@ -382,5 +393,5 @@ void main(int argc, char** argv){
     // wordfree(&cmd_arguments_struct);
 
     // process command
-    processCommand(in_argc, in_argv, server_ip);
+    processCommand(in_argc, in_argv, server_ip, cmd_buffer);
 }
