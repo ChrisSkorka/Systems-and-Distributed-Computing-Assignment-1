@@ -1,21 +1,36 @@
+// ----------------------------------------------------------------------------
+// Filename:        server.c
+// Author:          Christopher Skorka
+// Date Created:    21/08/2018
+// Description:     Server side of the remote progam. It waits for queries,
+//                  processes them and responds.
+// ----------------------------------------------------------------------------
+
+// INCLUDES -------------------------------------------------------------------
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "socket.c"
-#include "file.c"
+#include "socket.h"
+#include "file.h"
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <winsock2.h>
 #else
     #include <sys/socket.h>
+    #include <netdb.h>
+    #include <netinet/in.h>
 #endif
 
-#define PORT 46564
-#define MESSAGE_BUFFER_SIZE 1024
-
+// TYPEDEFS -------------------------------------------------------------------
 typedef enum {false, true} bool;
+
+// PROTOTYPES -----------------------------------------------------------------
+char* shell(char* shell_command);
+void main();
+
+// FUNCTIONS ------------------------------------------------------------------
 
 char* shell(char* shell_command){
     // execute command and store result, status and/or error
@@ -103,12 +118,16 @@ void main(){
             continue;
         }
         
-        int process = fork();
-
-        // if child process exit listining loop and process request
-        if(process == 0){
-            break;
-        }
+        // fork here
+        #if defined(_WIN32) || defined(_WIN64)
+            // windows equivilant here
+        #else
+            int process = fork();
+            // if child process exit listining loop and process request
+            if(process == 0){
+                break;
+            }
+        #endif
 
     }
 
@@ -226,3 +245,7 @@ void main(){
 
     close(connection_socket_fd);
 }
+
+// ----------------------------------------------------------------------------
+// END OF FILE
+// ----------------------------------------------------------------------------

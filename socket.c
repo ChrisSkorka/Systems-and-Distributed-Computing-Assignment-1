@@ -1,3 +1,4 @@
+#include "socket.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,9 +11,6 @@
     #include <netdb.h>
     #include <netinet/in.h>
 #endif
-
-#define PORT 46564
-#define MESSAGE_BUFFER_SIZE 1024
 
 // write array to socket (send)
 int sendArray(int socket_fd, char* message, long length){
@@ -52,10 +50,17 @@ char* receiveArray(int socket_fd, long* len){
 
     // read response size
     char message_size_str[MESSAGE_BUFFER_SIZE];
-    // bzero(message_size_str, MESSAGE_BUFFER_SIZE);
-    int code = recv(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE, 0);
-    if (code < 0)
-        printf("Error reading from socket\n");
+    int code = 0;
+    
+    int size_len_recieved = 0;
+    while(size_len_recieved < MESSAGE_BUFFER_SIZE && code > -1){
+        code = recv(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE, 0);
+        if (code < 0){
+            printf("Error reading from socket\n");
+            break;
+        }else
+            size_len_recieved += code;
+    }
 
     // create string to contain message
     int length = atoi(message_size_str);

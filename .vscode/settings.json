@@ -3,6 +3,9 @@
         "string.h": "c",
         "stdlib.h": "c",
         "wordexp.h": "c",
-        "netdb.h": "c"
+        "netdb.h": "c",
+        "fileio.h": "c",
+        "socketio.h": "c",
+        "stdio.h": "c"
     }
 }
