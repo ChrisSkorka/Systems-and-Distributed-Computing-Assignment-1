@@ -57,6 +57,7 @@ int sendArray(int socket_fd, char* message, long length){
         return code;
     }
     
+    // code is bytes read or -1 on failure
     return code;
 }
 
@@ -86,13 +87,14 @@ char* receiveArray(int socket_fd, long* len){
     // read response size
     char message_size_str[MESSAGE_BUFFER_SIZE];
     int code = 0;
-    
+
+    // read until default message size has been red
     int size_len_recieved = 0;
     while(size_len_recieved < MESSAGE_BUFFER_SIZE && code > -1){
         code = recv(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE, 0);
-        if (code < 0){
+        if (code < 0){ // 
             printf("Error reading from socket\n");
-            break;
+            return NULL;
         }else
             size_len_recieved += code;
     }
@@ -108,7 +110,7 @@ char* receiveArray(int socket_fd, long* len){
         code = recv(socket_fd, &message[len_recieved], length, 0);
         if (code < 0){
             printf("Error reading from socket\n");
-            break;
+            return NULL;
         }else
             len_recieved += code;
     }
@@ -122,7 +124,7 @@ char* receiveArray(int socket_fd, long* len){
 // Returns:     char*:          char array recieved
 // -----------------------------------------------------------------------------
 char* receiveString(int socket_fd){
-	long len;
+	long len; // dummy length variable
 	return receiveArray(socket_fd, &len);
 }
 
@@ -163,14 +165,10 @@ int connectToServer(char* server_ip){
     }
 
     // setup serv_addr struct for socket
-    // bzero((char *) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     memcpy((char *)&serv_addr.sin_addr.s_addr,
         (char *)server->h_addr,
         server->h_length);
-    // cbopy((char *)server->h_addr, 
-    //     (char *)&serv_addr.sin_addr.s_addr,
-    //     server->h_length);
     serv_addr.sin_port = htons(PORT);
 
     // connect to socket
@@ -179,6 +177,7 @@ int connectToServer(char* server_ip){
         return 0;
     }
 
+    // socket file descriptor
     return fd;
 }
 

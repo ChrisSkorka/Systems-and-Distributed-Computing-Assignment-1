@@ -29,7 +29,7 @@ char* getFileName(char* path);
 // Returns:		char*:	file content or error message on faliure
 // -----------------------------------------------------------------------------
 char* readFile(char* filepath, long* len, int* status){
-	*status = 0; // status is failed unless success
+	*status = 0; // status is failed unless changed to success
 
 	// if file isnt available
 	if(!fileExists(filepath)){
@@ -43,6 +43,7 @@ char* readFile(char* filepath, long* len, int* status){
 	long length;
 	FILE* fp = fopen (filepath, "r");
 
+	// if file opened successfully 
 	if(fp){
 		// find length of content
 		fseek (fp, 0, SEEK_END);
@@ -56,10 +57,13 @@ char* readFile(char* filepath, long* len, int* status){
 			fread(buffer, sizeof(char), length, fp);
 		}
 
+		// close file and set status to success
 		fclose (fp);
 		*status = 1;
 		return buffer;
+
 	}else{
+		// return error instead
 		char* error = "Error: unable to open file";
 		*len = strlen(error) + 1;
 		return error;
@@ -83,11 +87,13 @@ char* writeFile(char* filename, char* message, long length, int override){
 		return "Error: file already exists, use -f to override files";
 	}
 
+	// create any files necessary
 	mkdir(getDirectories(filename), 0777);
 
     FILE *fp;
     fp = fopen(filename, "w");
 
+	// if file opened successfully
 	if(fp){
 		fwrite(message, sizeof(char), length, fp);
 		fclose(fp);
@@ -98,17 +104,19 @@ char* writeFile(char* filename, char* message, long length, int override){
 		else
 			return NULL;
 	}else{
+		// return error message instead
 		return "Error: unable to open file";
 	}
 }
 
 // -----------------------------------------------------------------------------
 // get file name from path
-// Parameters:	char* path:	file path from which to extract the file name
-// Returns:		char*:		string containing the file name
+// Parameters:	char* filepath:	file path from which to extract the file name
+// Returns:		char*:			string containing the file name
 // -----------------------------------------------------------------------------
-char* getFileName(char* path){
-	return basename(path);
+char* getFileName(char* filepath){
+	// return filename
+	return basename(filepath);
 }
 
 // -----------------------------------------------------------------------------

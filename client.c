@@ -51,7 +51,6 @@ ServerResponse processDelay(int argc, char** argv, char* server_ip);
 void processCommand(int argc, char** argv, char* server_ip, char* plain_command);
 void main(int argc, char** argv);
 
-
 // FUNCTIONS ///////////////////////////////////////////////////////////////////
 
 // -----------------------------------------------------------------------------
@@ -61,9 +60,6 @@ void main(int argc, char** argv);
 // Returns:		void
 // -----------------------------------------------------------------------------
 void print(char* original_message){
-    // printf("\033[1A");
-    // printf("%s\n", message);
-    // printf("\033[1B");
 
     // copy string to prevent side effects from strtok
     long message_length = strlen(original_message) + 1;
@@ -82,11 +78,11 @@ void print(char* original_message){
             line = strtok_r(message, "\n", &message);
         }
         
-        if(line != NULL){ // if more lines exists wait for enter
+        if(line != NULL){ // if more lines exist wait for enter to be pressed
             printf("press ENTER key to continue\r");
-            getchar();
-            printf("\033[1A");
-            printf("                           \r");
+            getchar(); // wait for enter
+            printf("\033[1A"); // move cursor 1 line up
+            printf("                           \r"); // clear print enter msg
         }
     }
 }
@@ -108,6 +104,7 @@ char* surroundWithQuotes(char* message){
     strcat(quote_wrapped_message, message);
     strcat(quote_wrapped_message, "\"");
 
+    // quote wrapped string
     return quote_wrapped_message;
 }
 
@@ -168,10 +165,12 @@ ServerResponse processList(int argc, char** argv, char* server_ip){
     // start timer
     gettimeofday(&(command_response.start_time), NULL);
 
+    // connect to server
     int socket_fd = connectToServer(server_ip);
     if(socket_fd == 0)
         return command_response;
 
+    // send command and arguments
     int code = sendString(socket_fd, "list");
     if(code >= 0)
         code = sendString(socket_fd, server_command_args);
@@ -180,6 +179,7 @@ ServerResponse processList(int argc, char** argv, char* server_ip){
         return command_response;
     }else{ // if request send successfully
 
+        // sever response
         long length;
         char* response = receiveArray(socket_fd, &length);
 
@@ -197,6 +197,7 @@ ServerResponse processList(int argc, char** argv, char* server_ip){
         }
     }
     
+    // server response struct
     return command_response;
 }
 
@@ -256,6 +257,7 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
     if(socket_fd == 0)
         return command_response;
 
+    // send command and arguments
     int code = sendString(socket_fd, "get");
     if(code >= 0)
         code = sendString(socket_fd, filepath);
@@ -264,6 +266,7 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
         return command_response;
     }else{ // if request send successfully
 
+        // get server response/file/error
         long length;
         char* response_status = receiveString(socket_fd);
         char* response_file = receiveArray(socket_fd, &length);
@@ -286,6 +289,7 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
         }
     }
 
+    // server response struct
     return command_response;
 }
 
@@ -332,6 +336,7 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
         newname = getFileName(localfile);
     }
 
+    // read specified file 
     long length;
     int status;
     char* file = readFile(localfile, &length, &status);
@@ -348,6 +353,7 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
             return command_response;
         }
         
+        // send command, arguments and file
         int code = sendString(socket_fd, "put"); // command
         if(code >= 0)
             code = sendString(socket_fd, newname); // newname
@@ -359,6 +365,7 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
             printf("Error sending request\n");
         else{ // if request send successfully
 
+            // servers response message
             char* response = receiveString(socket_fd);
 
             // end connetion and time it
@@ -373,6 +380,7 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
         command_response.print_to_screen = file;
     }
 
+    // server response struct
     return command_response;
 }
 
@@ -423,6 +431,7 @@ ServerResponse processSys(int argc, char** argv, char* server_ip){
 
     }
 
+    // server response struct
     return command_response;
 }
 
@@ -476,11 +485,13 @@ ServerResponse processDelay(int argc, char** argv, char* server_ip){
         close(socket_fd);
         gettimeofday(&(command_response.end_time), NULL);
 
+        // server response struct
         command_response.print_to_screen = response;
         command_response.server_responded = true;
 
     }
 
+    // server response struct
     return command_response;
 }
 
@@ -504,13 +515,14 @@ void processCommand(int argc, char** argv, char* server_ip, char* plain_command)
     command_response.localfile = NULL;
     command_response.override_file = false;
 
+    // check if command is provided
     if(argc < 1){
         command_response.print_to_screen = "No Command provided";
     }else{
         // get command
         char* command = argv[0];
 
-        // excecute command
+        // excecute the specified command
         if(strcmp(command, "list") == 0)
             command_response = processList(argc, argv, server_ip);
         else if(strcmp(command, "get") == 0)
@@ -585,8 +597,8 @@ void main(int argc, char** argv){
     }
     char* server_ip = argv[1];
 
+    // command input buffer
     char cmd_buffer[COMMAND_BUFFER_SIZE];
-    // char* cmd_buffer = malloc(COMMAND_BUFFER_SIZE);
 
     printf("////////////////////////////////////////\n");
     printf("| Client is ready, commands are        |\n");
@@ -610,7 +622,7 @@ void main(int argc, char** argv){
 
         // fork here
         #if defined(_WIN32) || defined(_WIN64)
-            // windows equivilant here
+            // TODO windows equivilant here
         #else
             int process = fork();
             if(process == 0){
@@ -623,7 +635,7 @@ void main(int argc, char** argv){
     char** in_argv;
     int in_argc = 0;
 
-    // break arguments individual strings
+    // break arguments into individual strings
     #if defined(_WIN32) || defined(_WIN64)
         in_argv = (char**)CommandLineToArgvW((LPCWSTR)cmd_buffer, &in_argc);
     #else

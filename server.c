@@ -55,6 +55,8 @@ char* shell(char* shell_command){
     char* response = calloc(str_max_size, sizeof(char));
 
     // read file into string
+    // since the output size is not known, a buffer will double in size when it
+    // fills up and the content is copied
     while(fgets(tmp, tmp_size, command_fp) != NULL){
 
         // if buffer is full, double size
@@ -70,6 +72,7 @@ char* shell(char* shell_command){
         strcat(response, tmp);
     }
 
+    // shell output
     return response;
 }
 
@@ -153,17 +156,16 @@ void main(){
     // check for each command and act accordingly
     if(strcmp(command, "list") == 0){ // list args
 
-        // get shell arguments and compose chell command string
+        // get shell arguments and compose shell command string
         char* shell_args = receiveString(connection_socket_fd);
-
         char* shell_base_command;
-
         #if defined(_WIN32) || defined(_WIN64)
             shell_base_command = "dir";
         #else
             shell_base_command = "ls";
         #endif
         
+        // concatinate command and arguments into a string
         char* shell_command = calloc(strlen(shell_base_command) + 
             strlen(shell_args) + 2, sizeof(char));
         strcat(shell_command, shell_base_command);
@@ -180,14 +182,16 @@ void main(){
         // get filepath
         char* filepath = receiveString(connection_socket_fd);
 
+        // read specified file
         long length;
         int status;
         char* file = readFile(filepath, &length, &status);
         char status_str[MESSAGE_BUFFER_SIZE];
         sprintf(status_str, "%i", status);
 
+        // send read success status
         sendString(connection_socket_fd, status_str); // status/read success
-        if(status)
+        if(status) // if red successfully
             sendArray(connection_socket_fd, file, length); // file content 
         else
             sendString(connection_socket_fd, file); // send error message
@@ -208,13 +212,16 @@ void main(){
         // write file to disk
         char* status = writeFile(newname, file, length, f);
 
+        // if red successfully say so
         if(status == NULL)
             status = "File copied successfully";
 
+        // respond
         sendString(connection_socket_fd, status);
 
     }else if(strcmp(command, "sys") == 0){
 
+        // strings to form the response
         char* response;
         char* os_info_header = "OS info:\n";
         char* os_info = "";
@@ -222,7 +229,7 @@ void main(){
         char* cpu_info = "";
 
         #if defined(_WIN32) || defined(_WIN64)
-            //os_name = "Windows";
+            // TODO
         #else
             os_info = shell("cat /etc/os-release | grep ID");
             cpu_info = shell("lscpu");
@@ -234,9 +241,11 @@ void main(){
             strlen(cpu_info_header) + 
             strlen(cpu_info) + 1;
 
+        // init string
         response = malloc(length);
         response[0] = 0;
-
+        
+        // concatinate all strings
         strcat(response, os_info_header);
         strcat(response, os_info);
         strcat(response, cpu_info_header);
@@ -249,14 +258,15 @@ void main(){
         // read delay duration
         char* delay_str = receiveString(connection_socket_fd);
 
+        // check if the delay provided is valid (a positive integer)
         bool is_valid = true;
         long length = strlen(delay_str);
         for(int i = 0; i < length; i++)
             is_valid &= ('0' <= delay_str[i] && delay_str[i] <= '9');
 
-        int delay = atoi(delay_str);
-
         if(is_valid){ // if valid delay
+            // str to int
+            int delay = atoi(delay_str);
 
             // sleep for specified time
             sleep(delay);
@@ -270,6 +280,7 @@ void main(){
         }
     }
 
+    // close connection
     close(connection_socket_fd);
 }
 
