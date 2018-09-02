@@ -89,7 +89,8 @@ void main(){
     #if defined(_WIN32) || defined(_WIN64)
         WSADATA wsa;
         if(WSAStartup(MAKEWORD(2,2),&wsa) != 0){
-            printf("Failed setting up socket for win. Error Code : %d", WSAGetLastError());
+            printf("Failed setting up socket for win. Error Code : %d", 
+                WSAGetLastError());
             return;
         }
     #endif
@@ -108,7 +109,8 @@ void main(){
     addr.sin_family = AF_INET;
 
     // bind socket
-    if(bind(socket_fd, (struct sockaddr *) & addr, sizeof(struct sockaddr_in) ) == -1){
+    if(bind(socket_fd, (struct sockaddr *) & addr, 
+        sizeof(struct sockaddr_in) ) == -1){
         printf("Error binding socket\n");
         return;
     }
@@ -162,7 +164,8 @@ void main(){
             shell_base_command = "ls";
         #endif
         
-        char* shell_command = calloc(strlen(shell_base_command) + strlen(shell_args) + 2, sizeof(char));
+        char* shell_command = calloc(strlen(shell_base_command) + 
+            strlen(shell_args) + 2, sizeof(char));
         strcat(shell_command, shell_base_command);
         strcat(shell_command, shell_args);
 

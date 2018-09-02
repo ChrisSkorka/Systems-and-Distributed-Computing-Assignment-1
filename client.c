@@ -41,7 +41,6 @@ typedef struct {
 #define COMMAND_BUFFER_SIZE 512
 
 // PROTOTYPES //////////////////////////////////////////////////////////////////
-
 void print(char* original_message);
 char* surroundWithQuotes(char* message);
 ServerResponse processList(int argc, char** argv, char* server_ip);
@@ -93,7 +92,7 @@ void print(char* original_message){
 }
 
 // -----------------------------------------------------------------------------
-// surrounds the message with quotes (")
+// surrounds the message with quotes ("...")
 // Parameters:	char* original_message: the message to wrap in quotes
 // Returns:		char*:                  quote wrapped message
 // -----------------------------------------------------------------------------
