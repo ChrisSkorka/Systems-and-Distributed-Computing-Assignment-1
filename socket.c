@@ -44,17 +44,35 @@ int sendArray(int socket_fd, char* message, long length){
     sprintf(message_size_str, "%ld", length);
 
     // send size of actual message
-    int code = send(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE, 0);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return code;
+    int code = 0;
+    long message_size_length_sent = 0;
+    while(code >= 0 && message_size_length_sent < MESSAGE_BUFFER_SIZE){
+
+        // send parts until entire message is sent or failure
+        int start = (int) message_size_length_sent;
+        int remaining = MESSAGE_BUFFER_SIZE - message_size_length_sent;
+        code = send(socket_fd, &message_size_str[start], remaining, 0);
+        if(code < 0){
+            printf("Error writing to socket\n");
+            return code;
+        }else
+            message_size_length_sent += code;
     }
 
     // send actual message
-    code = send(socket_fd, message, length, 0);
-    if(code < 0){
-        printf("Error writing to socket\n");
-        return code;
+    code = 0;
+    long message_length_sent = 0;
+    while(code >= 0 && message_length_sent < length){
+
+        // send parts until entire message is sent or failure
+        int start = (int) message_length_sent;
+        int remaining = length - message_length_sent;
+        code = send(socket_fd, &message[start], remaining, 0);
+        if(code < 0){
+            printf("Error writing to socket\n");
+            return code;
+        }else
+            message_length_sent += code;
     }
     
     // code is bytes read or -1 on failure
@@ -91,6 +109,8 @@ char* receiveArray(int socket_fd, long* len){
     // read until default message size has been red
     int size_len_recieved = 0;
     while(size_len_recieved < MESSAGE_BUFFER_SIZE && code > -1){
+
+        // read parts until entire message is sent or failure
         code = recv(socket_fd, message_size_str, MESSAGE_BUFFER_SIZE, 0);
         if (code < 0){ // 
             printf("Error reading from socket\n");
@@ -107,6 +127,8 @@ char* receiveArray(int socket_fd, long* len){
     // read actual response
     int len_recieved = 0;
     while(len_recieved < length && code > -1){
+
+        // read parts until entire message is sent or failure
         code = recv(socket_fd, &message[len_recieved], length, 0);
         if (code < 0){
             printf("Error reading from socket\n");
