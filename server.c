@@ -1,12 +1,12 @@
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 // Filename:        server.c
 // Author:          Christopher Skorka
 // Date Created:    21/08/2018
 // Description:     Server side of the remote progam. It waits for queries,
 //                  processes them and responds.
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 
-// INCLUDES -------------------------------------------------------------------
+// INCLUDES ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,15 +23,20 @@
     #include <netinet/in.h>
 #endif
 
-// TYPEDEFS -------------------------------------------------------------------
+// TYPEDEFS ////////////////////////////////////////////////////////////////////
 typedef enum {false, true} bool;
 
-// PROTOTYPES -----------------------------------------------------------------
+// PROTOTYPES //////////////////////////////////////////////////////////////////
 char* shell(char* shell_command);
 void main();
 
-// FUNCTIONS ------------------------------------------------------------------
+// FUNCTIONS ///////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------------------------------------
+// lets the operating systems shell execute a command and returns its output
+// Parameters:	char* shell_command:  the command as a single string 
+// Returns:		char*:                shell output or error message on faliure
+// -----------------------------------------------------------------------------
 char* shell(char* shell_command){
     // execute command and store result, status and/or error
     FILE *command_fp;
@@ -68,6 +73,12 @@ char* shell(char* shell_command){
     return response;
 }
 
+// -----------------------------------------------------------------------------
+// main function of server.c, opens and binds a socket, listens for connections
+// accept connections and processes connections/requests in new processes
+// Parameters:	void
+// Returns:		void
+// -----------------------------------------------------------------------------
 void main(){
     // variables
     struct sockaddr_in addr;
@@ -246,6 +257,6 @@ void main(){
     close(connection_socket_fd);
 }
 
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 // END OF FILE
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////

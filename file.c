@@ -1,11 +1,33 @@
+// /////////////////////////////////////////////////////////////////////////////
+// Filename:        file.c
+// Author:          Christopher Skorka
+// Date Created:    30/08/2018
+// Description:     File IO, reads and writes messages to and from files
+// /////////////////////////////////////////////////////////////////////////////
+
+// INCLUDES ////////////////////////////////////////////////////////////////////
 #include "file.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <libgen.h>
+#include <sys/stat.h>
 
-// read content from file, returns content or error message
+// PRTOTYPES ///////////////////////////////////////////////////////////////////
+char* readFile(char* filepath, long* len, int* status);
+char* writeFile(char* filename, char* message, long length, int override);
+char* getFileName(char* path);
+
+// FUNCTIONS ///////////////////////////////////////////////////////////////////
+
+// -----------------------------------------------------------------------------
+// read content from specified file
+// Parameters:	char* filepath:	file to be red
+//				long* len:		stores number of bytes red (side effect)
+//				int* status:	stores read status (side effect)
+// Returns:		char*:	file content or error message on faliure
+// -----------------------------------------------------------------------------
 char* readFile(char* filepath, long* len, int* status){
 	*status = 0; // status is failed unless success
 
@@ -44,11 +66,20 @@ char* readFile(char* filepath, long* len, int* status){
 	}
 }
 
-// write char array of given length to file, returns error message
+// -----------------------------------------------------------------------------
+// write char array of given length to specified file
+// Parameters:	char* filename: file to be writen to
+//				char* message:	message to be written
+//				long length:	number of bytes to be written
+//				int override:	whether to override an existing file
+// Returns:		char*:			NULL or error message on faliour
+// -----------------------------------------------------------------------------
 char* writeFile(char* filename, char* message, long length, int override){
 	if(!override && access(filename, F_OK) == 0){
 		return "Error: file already exists, use -f to override files";
 	}
+
+	mkdir(getDirectories(filename), 0777);
 
     FILE *fp;
     fp = fopen(filename, "w");
@@ -62,7 +93,29 @@ char* writeFile(char* filename, char* message, long length, int override){
 	}
 }
 
+// -----------------------------------------------------------------------------
 // get file name from path
+// Parameters:	char* path:	file path from which to extract the file name
+// Returns:		char*:		string containing the file name
+// -----------------------------------------------------------------------------
 char* getFileName(char* path){
 	return basename(path);
 }
+
+// -----------------------------------------------------------------------------
+// get directories from path (remove filename)
+// Parameters:	char* path:	file path from which to extract the directories
+// Returns:		char*:		string containing the path excliding the file name
+// -----------------------------------------------------------------------------
+char* getDirectories(char* path){
+	// copy path to prevent side effects
+	char* local_path = malloc(strlen(path) + 1);
+	strcpy(local_path, path);
+
+	// get directories
+	return dirname(local_path);
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// END OF FILE
+// /////////////////////////////////////////////////////////////////////////////

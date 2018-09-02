@@ -6,6 +6,7 @@
         "netdb.h": "c",
         "fileio.h": "c",
         "socketio.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "socket.h": "c"
     }
 }

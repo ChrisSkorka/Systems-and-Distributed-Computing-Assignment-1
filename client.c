@@ -1,13 +1,13 @@
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 // Filename:        client.c
 // Author:          Christopher Skorka
 // Date Created:    21/08/2018
 // Description:     Client side of the remote server program, it queries for
 //                  commands, forwards them to the server and prints or saves 
 //                  the response
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 
-// INCLUDES -------------------------------------------------------------------
+// INCLUDES ////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +23,7 @@
     #include <wordexp.h>
 #endif
 
-// TYPEDEFS -------------------------------------------------------------------
+// TYPEDEFS ////////////////////////////////////////////////////////////////////
 typedef enum { false, true } bool;
 
 typedef struct {
@@ -37,10 +37,10 @@ typedef struct {
     struct timeval end_time;
 } ServerResponse;
 
-// GLOBALS --------------------------------------------------------------------
+// GLOBALS /////////////////////////////////////////////////////////////////////
 #define COMMAND_BUFFER_SIZE 512
 
-// PROTOTYPES -----------------------------------------------------------------
+// PROTOTYPES //////////////////////////////////////////////////////////////////
 
 void print(char* original_message);
 ServerResponse processList(int argc, char** argv, char* server_ip);
@@ -52,8 +52,14 @@ void processCommand(int argc, char** argv, char* server_ip, char* plain_command)
 void main(int argc, char** argv);
 
 
-// FUNCTIONS ------------------------------------------------------------------
+// FUNCTIONS ///////////////////////////////////////////////////////////////////
 
+// -----------------------------------------------------------------------------
+// print to the terminal the string provided 40 lines at a time, it waits for 
+// enter to be pressed between each block of 40 lines
+// Parameters:	char* original_message: the message to be printed
+// Returns:		void
+// -----------------------------------------------------------------------------
 void print(char* original_message){
     // printf("\033[1A");
     // printf("%s\n", message);
@@ -85,8 +91,15 @@ void print(char* original_message){
     }
 }
 
+// -----------------------------------------------------------------------------
+// processes the list command
+// list [-l] [-f] [pathname] [localfile]
+// Parameters:	int argc:           number of arguments provided by the user
+//              char** argv:        arguments including command
+//              char* server_ip:    the server address to query
+// Returns:		ServerResponse:     server responses and flags or error strings
+// -----------------------------------------------------------------------------
 ServerResponse processList(int argc, char** argv, char* server_ip){
-    // list [-l] [-f] [pathname] [localfile]
     
     // default values
     ServerResponse command_response;
@@ -167,8 +180,15 @@ ServerResponse processList(int argc, char** argv, char* server_ip){
     return command_response;
 }
 
+// -----------------------------------------------------------------------------
+// processes the get command
+// get filepath [-f] [localfile]
+// Parameters:	int argc:           number of arguments provided by the user
+//              char** argv:        arguments including command
+//              char* server_ip:    the server address to query
+// Returns:		ServerResponse:     server responses and flags or error strings
+// -----------------------------------------------------------------------------
 ServerResponse processGet(int argc, char** argv, char* server_ip){
-    // get filepath [-f] [localfile]
 
     // default values
     ServerResponse command_response;
@@ -240,8 +260,15 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
     return command_response;
 }
 
+// -----------------------------------------------------------------------------
+// processes the put command
+// put localfile [-f] [newname]: copy file to server
+// Parameters:	int argc:           number of arguments provided by the user
+//              char** argv:        arguments including command
+//              char* server_ip:    the server address to query
+// Returns:		ServerResponse:     server responses and flags or error strings
+// -----------------------------------------------------------------------------
 ServerResponse processPut(int argc, char** argv, char* server_ip){
-    // put localfile [-f] [newname]: copy file to server
 
     // default values
     ServerResponse command_response;
@@ -262,7 +289,7 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
         command_response.print_to_screen = "No localfile provided";
         return command_response;
     }
-    command_response.localfile = argv[1];
+    localfile = argv[1];
 
     int i = 2;
     if(i < argc && strcmp(argv[i], "-f") == 0){
@@ -320,8 +347,15 @@ ServerResponse processPut(int argc, char** argv, char* server_ip){
     return command_response;
 }
 
+// -----------------------------------------------------------------------------
+// processes the sys command
+// sys
+// Parameters:	int argc:           number of arguments provided by the user
+//              char** argv:        arguments including command
+//              char* server_ip:    the server address to query
+// Returns:		ServerResponse:     server responses and flags or error strings
+// -----------------------------------------------------------------------------
 ServerResponse processSys(int argc, char** argv, char* server_ip){
-    // sys
 
     // default values
     ServerResponse command_response;
@@ -363,8 +397,15 @@ ServerResponse processSys(int argc, char** argv, char* server_ip){
     return command_response;
 }
 
+// -----------------------------------------------------------------------------
+// processes the delay command
+// delay integer
+// Parameters:	int argc:           number of arguments provided by the user
+//              char** argv:        arguments including command
+//              char* server_ip:    the server address to query
+// Returns:		ServerResponse:     server responses and flags or error strings
+// -----------------------------------------------------------------------------
 ServerResponse processDelay(int argc, char** argv, char* server_ip){
-    // delay integer
 
     // default values
     ServerResponse command_response;
@@ -414,6 +455,15 @@ ServerResponse processDelay(int argc, char** argv, char* server_ip){
     return command_response;
 }
 
+// -----------------------------------------------------------------------------
+// processes a command entered by the user
+// Parameters:	int argc:               number of arguments provided by the user
+//              char** argv:            arguments including command
+//              char* server_ip:        the server address which to query
+//              char* plain_command:    the plain command used for reference 
+//                                      once the response is received
+// Returns:		void
+// -----------------------------------------------------------------------------
 void processCommand(int argc, char** argv, char* server_ip, char* plain_command){
 
     // default values
@@ -492,6 +542,11 @@ void processCommand(int argc, char** argv, char* server_ip, char* plain_command)
     printf("\n> ");
 }
 
+// -----------------------------------------------------------------------------
+// main function of client.c 
+// Parameters:	
+// Returns:		
+// -----------------------------------------------------------------------------
 void main(int argc, char** argv){
 
     // require server name
@@ -504,11 +559,11 @@ void main(int argc, char** argv){
     char cmd_buffer[COMMAND_BUFFER_SIZE];
     // char* cmd_buffer = malloc(COMMAND_BUFFER_SIZE);
 
-    printf("----------------------------------------\n");
+    printf("////////////////////////////////////////\n");
     printf("| Client is ready, commands are        |\n");
     printf("| executed in the background           |\n");
     printf("| Commands: list, get, put, sys, delay |\n");
-    printf("----------------------------------------\n");
+    printf("////////////////////////////////////////\n");
 
     // continuous command execution loop
     while(1){
@@ -553,6 +608,6 @@ void main(int argc, char** argv){
     processCommand(in_argc, in_argv, server_ip, cmd_buffer);
 }
 
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
 // END OF FILE
-// ----------------------------------------------------------------------------
+// /////////////////////////////////////////////////////////////////////////////
