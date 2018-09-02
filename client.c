@@ -43,6 +43,7 @@ typedef struct {
 // PROTOTYPES //////////////////////////////////////////////////////////////////
 
 void print(char* original_message);
+char* surroundWithQuotes(char* message);
 ServerResponse processList(int argc, char** argv, char* server_ip);
 ServerResponse processGet(int argc, char** argv, char* server_ip);
 ServerResponse processPut(int argc, char** argv, char* server_ip);
@@ -92,6 +93,26 @@ void print(char* original_message){
 }
 
 // -----------------------------------------------------------------------------
+// surrounds the message with quotes (")
+// Parameters:	char* original_message: the message to wrap in quotes
+// Returns:		char*:                  quote wrapped message
+// -----------------------------------------------------------------------------
+char* surroundWithQuotes(char* message){
+
+    // setup required values
+    long length = strlen(message);
+    char* quote_wrapped_message = malloc(length + 3);
+    quote_wrapped_message[0] = 0; // empty string
+
+    // concatinate string parts
+    strcat(quote_wrapped_message, "\"");
+    strcat(quote_wrapped_message, message);
+    strcat(quote_wrapped_message, "\"");
+
+    return quote_wrapped_message;
+}
+
+// -----------------------------------------------------------------------------
 // processes the list command
 // list [-l] [-f] [pathname] [localfile]
 // Parameters:	int argc:           number of arguments provided by the user
@@ -125,7 +146,7 @@ ServerResponse processList(int argc, char** argv, char* server_ip){
         i++;
     }
     if(i < argc){
-        pathname = argv[i];
+        pathname = surroundWithQuotes(argv[i]);
         i++;
     }
     if(i < argc){
@@ -204,7 +225,7 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
 
     // get arguments from command line into corresponding variables
     if(argc <= 1){
-        command_response.print_to_screen = "No filepath provided";
+        command_response.print_to_screen = "Error: No filepath provided";
         return command_response;
     }
     filepath = argv[1];
@@ -217,6 +238,15 @@ ServerResponse processGet(int argc, char** argv, char* server_ip){
     if(i < argc){
         command_response.localfile = argv[i];
         i++;
+    }
+
+    // if file already exists and override is false notify of the error and do
+    // not send the request to the server
+    if(!command_response.override_file 
+        && fileExists(command_response.localfile)){
+        command_response.print_to_screen = 
+            "Error: file already exists, use -f to override files";
+        return command_response;
     }
 
     // start timer
@@ -576,7 +606,7 @@ void main(int argc, char** argv){
         cmd_buffer[strlen(cmd_buffer) - 1] = 0;
 
         // if command is exit, break loop before sending any command
-        if(strcmp(cmd_buffer, "exit") == 0)
+        if(strcmp(cmd_buffer, "quit") == 0)
             return;
 
         // fork here

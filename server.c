@@ -245,13 +245,26 @@ void main(){
     }else if(strcmp(command, "delay") == 0){ // delay integer
         // read delay duration
         char* delay_str = receiveString(connection_socket_fd);
+
+        bool is_valid = true;
+        long length = strlen(delay_str);
+        for(int i = 0; i < length; i++)
+            is_valid &= ('0' <= delay_str[i] && delay_str[i] <= '9');
+
         int delay = atoi(delay_str);
 
-        // sleep for specified time
-        sleep(delay);
+        if(is_valid){ // if valid delay
 
-        // respond
-        sendString(connection_socket_fd, delay_str);
+            // sleep for specified time
+            sleep(delay);
+
+            // respond
+            sendString(connection_socket_fd, delay_str);
+
+        }else{ // if delay is invalid (eg negative or non integer)
+            // respond error
+            sendString(connection_socket_fd, "Error: not a positive integer");
+        }
     }
 
     close(connection_socket_fd);

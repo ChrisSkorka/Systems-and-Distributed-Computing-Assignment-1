@@ -44,6 +44,13 @@ char* getFileName(char* path);
 // -----------------------------------------------------------------------------
 char* getDirectories(char* path);
 
+// -----------------------------------------------------------------------------
+// check if a file already exists
+// Parameters:	char* path:	file path to checked
+// Returns:		int:		1 if file exists 0 otherwise
+// -----------------------------------------------------------------------------
+int fileExists(char* filepath);
+
 // MACROS //////////////////////////////////////////////////////////////////////
 #endif
 

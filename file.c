@@ -32,8 +32,8 @@ char* readFile(char* filepath, long* len, int* status){
 	*status = 0; // status is failed unless success
 
 	// if file isnt available
-	if(access(filepath, F_OK) == -1){
-		char* error = "Error: file doesn't exists";
+	if(!fileExists(filepath)){
+		char* error = "Error: file doesn't exist";
 		*len = strlen(error) + 1;
 		return error;
 	}
@@ -75,7 +75,11 @@ char* readFile(char* filepath, long* len, int* status){
 // Returns:		char*:			NULL or error message on faliour
 // -----------------------------------------------------------------------------
 char* writeFile(char* filename, char* message, long length, int override){
-	if(!override && access(filename, F_OK) == 0){
+	// whether the files exists
+	int file_exists = fileExists(filename);
+	
+	// if the file exists and override is false, return an error
+	if(!override && file_exists){
 		return "Error: file already exists, use -f to override files";
 	}
 
@@ -87,7 +91,12 @@ char* writeFile(char* filename, char* message, long length, int override){
 	if(fp){
 		fwrite(message, sizeof(char), length, fp);
 		fclose(fp);
-		return NULL;
+
+		// if the file has been overridden, report it
+		if(file_exists)
+			return "Note: file has been overridden";
+		else
+			return NULL;
 	}else{
 		return "Error: unable to open file";
 	}
@@ -114,6 +123,18 @@ char* getDirectories(char* path){
 
 	// get directories
 	return dirname(local_path);
+}
+
+// -----------------------------------------------------------------------------
+// check if a file already exists
+// Parameters:	char* path:	file path to eb checked
+// Returns:		int:		1 if file exists 0 otherwise
+// -----------------------------------------------------------------------------
+int fileExists(char* filepath){
+	if(access(filepath, F_OK) == 0)
+		return 1; // true: file exists
+	else
+		return 0; // false file doest not exists or is unavailable
 }
 
 // /////////////////////////////////////////////////////////////////////////////
